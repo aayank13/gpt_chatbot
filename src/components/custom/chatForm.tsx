@@ -1,27 +1,52 @@
 'use client'
 
+import { useState } from 'react'
 import { cn } from '@/lib/utils'
 import { useChat } from 'ai/react'
-import { ArrowUpIcon, Bot, User } from 'lucide-react'
+import { ArrowUpIcon, Bot, User, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { AutoResizeTextArea } from '@/components/custom/autoResizeTextArea'
 import { ThemeToggle } from '@/components/custom/themeToggle'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 
 export function ChatForm({
   className,
   ...props
 }: React.ComponentProps<'form'>) {
-  const { messages, input, setInput, append } = useChat({
+  const [error, setError] = useState<string | null>(null)
+  const { messages, input, setInput, append, isLoading } = useChat({
     api: '/api/chat',
+    onError: (err) => {
+      console.error('Chat error:', err)
+      setError(err.message || 'An unexpected error occurred')
+    },
   })
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    if (!input.trim()) return
-    void append({ content: input, role: 'user' })
+    setError(null)
+    const message = input.trim()
+    if (!message) return
     setInput('')
+    try {
+      await append({
+        content: message,
+        role: 'user',
+      })
+    } catch (err) {
+      console.error('Error sending message:', err)
+      setError('Failed to send message. Please try again.')
+    }
   }
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -59,6 +84,21 @@ export function ChatForm({
       )}
       {...props}
     >
+      <AlertDialog open={!!error} onOpenChange={() => setError(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-destructive" />
+              Error
+            </AlertDialogTitle>
+            <AlertDialogDescription>{error}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction>Dismiss</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <header className="sticky top-0 z-50 border-b bg-background/50 backdrop-blur">
         <div className="flex h-16 items-center justify-between px-4">
           <div className="flex items-center gap-2">
@@ -102,17 +142,18 @@ export function ChatForm({
           <Card className="relative flex flex-1 items-center">
             <AutoResizeTextArea
               onKeyDown={handleKeyDown}
-              onChange={setInput}
+              onChange={(value) => setInput(value)}
               value={input}
               placeholder="Send a message..."
               className="min-h-12 w-full resize-none bg-transparent px-4 py-3 focus:outline-none"
+              disabled={isLoading}
             />
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
                   type="submit"
                   size="icon"
-                  disabled={!input.trim()}
+                  disabled={!input.trim() || isLoading}
                   className="absolute right-2 h-8 w-8"
                 >
                   <ArrowUpIcon className="h-4 w-4" />
@@ -126,4 +167,3 @@ export function ChatForm({
     </main>
   )
 }
-
