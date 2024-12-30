@@ -1,12 +1,12 @@
 import { CoreMessage, streamText } from 'ai'
-import { openai } from '@ai-sdk/openai'
+import { google } from '@ai-sdk/google'
 
 export async function POST(req: Request) {
   const { messages }: { messages: CoreMessage[] } = await req.json()
 
   try {
     const result = await streamText({
-      model: openai('gpt-4o-mini'),
+      model: google('gemini-2.0-flash-exp'),
       system: 'You are a helpful assistant.',
       messages,
     })
