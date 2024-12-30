@@ -1,14 +1,18 @@
-'use client'
+"use client";
 
-import { useState } from 'react'
-import { cn } from '@/lib/utils'
-import { useChat } from 'ai/react'
-import { ArrowUpIcon, Bot, User, AlertCircle } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-import { AutoResizeTextArea } from '@/components/custom/autoResizeTextArea'
-import { ThemeToggle } from '@/components/custom/themeToggle'
+import { useState } from "react";
+import { cn } from "@/lib/utils";
+import { useChat } from "ai/react";
+import { ArrowUpIcon, Bot, User, AlertCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { AutoResizeTextArea } from "@/components/custom/autoResizeTextArea";
+import { ThemeToggle } from "@/components/custom/themeToggle";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,44 +21,73 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
+} from "@/components/ui/alert-dialog";
 
 export function ChatForm({
   className,
   ...props
-}: React.ComponentProps<'form'>) {
-  const [error, setError] = useState<string | null>(null)
+}: React.ComponentProps<"form">) {
+  const [error, setError] = useState<string | null>(null);
   const { messages, input, setInput, append, isLoading } = useChat({
-    api: '/api/chat',
+    api: "/api/chat",
     onError: (err) => {
-      console.error('Chat error:', err)
-      setError(err.message || 'An unexpected error occurred')
+      console.error("Chat error:", err);
+      setError(err.message || "An unexpected error occurred");
     },
-  })
+  });
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    setError(null)
-    const message = input.trim()
-    if (!message) return
-    setInput('')
+    e.preventDefault();
+    setError(null);
+    const message = input.trim();
+    if (!message) return;
+    setInput("");
     try {
       await append({
         content: message,
-        role: 'user',
-      })
+        role: "user",
+      });
     } catch (err) {
-      console.error('Error sending message:', err)
-      setError('Failed to send message. Please try again.')
+      console.error("Error sending message:", err);
+      setError("Failed to send message. Please try again.");
     }
-  }
+  };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault()
-      handleSubmit(e as unknown as React.FormEvent<HTMLFormElement>)
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSubmit(e as unknown as React.FormEvent<HTMLFormElement>);
     }
-  }
+  };
+
+  const formatContent = (content: string) => {
+    const formattedContent = content.split("\n").map((line, i) => {
+      // Replace first single asterisk (*) with "->"
+      if (line.trim().startsWith("* ")) {
+        line = line.replace(/^\*\s/, "-> ");
+      }
+
+      const parts = line.split(/(\*\*.*?\*\*)/g); // Split by bold syntax (**bold**)
+
+      return (
+        <span key={i}>
+          {parts.map((part, j) => {
+            if (part.startsWith("**") && part.endsWith("**")) {
+              return (
+                <strong key={j}>
+                  {part.substring(2, part.length - 2)} {/* Remove ** */}
+                </strong>
+              );
+            }
+            return <span key={j}>{part}</span>;
+          })}
+          {i < content.split("\n").length - 1 && <br />}
+        </span>
+      );
+    });
+
+    return formattedContent;
+  };
 
   const header = (
     <div className="relative">
@@ -67,19 +100,19 @@ export function ChatForm({
           AI Chatbot
         </h1>
         <p className="max-w-md text-muted-foreground">
-          This is an AI chatbot app built with{' '}
-          <span className="text-foreground">Next.js</span>, the{' '}
-          <span className="text-foreground">Vercel AI SDK</span>, and{' '}
+          This is an AI chatbot app built with{" "}
+          <span className="text-foreground">Next.js</span>, the{" "}
+          <span className="text-foreground">Vercel AI SDK</span>, and{" "}
           <span className="text-foreground">OpenAI</span>.
         </p>
       </div>
     </div>
-  )
+  );
 
   return (
     <main
       className={cn(
-        'mx-auto flex h-svh w-full max-w-4xl flex-col items-stretch',
+        "mx-auto flex h-svh w-full max-w-4xl flex-col items-stretch",
         className
       )}
       {...props}
@@ -116,16 +149,18 @@ export function ChatForm({
               <Card
                 key={index}
                 className={cn(
-                  'flex w-max max-w-[80%] items-start gap-3 px-4 py-3',
-                  message.role === 'user' && 'ml-auto'
+                  "flex w-max max-w-[80%] items-start gap-3 px-4 py-3",
+                  message.role === "user" ? "ml-auto" : "mr-auto"
                 )}
               >
-                {message.role === 'assistant' ? (
+                {message.role === "assistant" ? (
                   <Bot className="mt-1 h-4 w-4 shrink-0" />
                 ) : (
                   <User className="mt-1 h-4 w-4 shrink-0" />
                 )}
-                <p className="text-sm">{message.content}</p>
+                <div className="text-sm whitespace-pre-wrap">
+                  {formatContent(message.content)}
+                </div>
               </Card>
             ))}
           </div>
@@ -165,5 +200,5 @@ export function ChatForm({
         </form>
       </div>
     </main>
-  )
+  );
 }
