@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { useChat } from "ai/react";
 import { ArrowUpIcon, Bot, User, AlertCircle } from "lucide-react";
@@ -22,6 +22,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { formatContent } from "./formatContent";
 
 export function ChatForm({
   className,
@@ -35,6 +36,14 @@ export function ChatForm({
       setError(err.message || "An unexpected error occurred");
     },
   });
+
+  const chatContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+    }
+  }, [messages]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -58,35 +67,6 @@ export function ChatForm({
       e.preventDefault();
       handleSubmit(e as unknown as React.FormEvent<HTMLFormElement>);
     }
-  };
-
-  const formatContent = (content: string) => {
-    const formattedContent = content.split("\n").map((line, i) => {
-      // Replace first single asterisk (*) with "->"
-      if (line.trim().startsWith("* ")) {
-        line = line.replace(/^\*\s/, "-> ");
-      }
-
-      const parts = line.split(/(\*\*.*?\*\*)/g); // Split by bold syntax (**bold**)
-
-      return (
-        <span key={i}>
-          {parts.map((part, j) => {
-            if (part.startsWith("**") && part.endsWith("**")) {
-              return (
-                <strong key={j}>
-                  {part.substring(2, part.length - 2)} {/* Remove ** */}
-                </strong>
-              );
-            }
-            return <span key={j}>{part}</span>;
-          })}
-          {i < content.split("\n").length - 1 && <br />}
-        </span>
-      );
-    });
-
-    return formattedContent;
   };
 
   const header = (
@@ -142,7 +122,7 @@ export function ChatForm({
         </div>
       </header>
 
-      <div className="flex-1 overflow-auto">
+      <div ref={chatContainerRef} className="flex-1 overflow-auto">
         {messages.length ? (
           <div className="flex flex-col gap-4 p-4">
             {messages.map((message, index) => (
